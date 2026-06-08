@@ -25,7 +25,12 @@ pio run -t merge -e supermini
 ./scripts/merge-firmware.sh --no-build
 ```
 
-There are no unit tests — this is embedded firmware; validation is done by flashing and observing the device.
+```bash
+# Run native unit tests (no device needed)
+~/.platformio/penv/bin/pio test -e native
+```
+
+Add `~/.platformio/penv/bin` to `PATH` to use `pio` directly.
 
 ## Architecture
 
@@ -35,22 +40,30 @@ The firmware follows a layered namespace structure:
 
 - **`hardware/` layer** — LovyanGFX display driver (`lgfx_config.hpp` defines the `LGFX` class for GC9A01 over SPI; `display.h`/`display.cpp` expose `displayInit()`). Note: `bootButtonInit()` and all BOOT button ISR/polling code live in `src/services/wifi_setup.cpp`, not in the hardware layer.
 
+- **`lib/radar_math/`** — header-only pure math and parsing (`offsetKm`, `portalCheckboxChecked`, `validLatLon`, `parseCoord`, `formatRing3Label`). No Arduino/ESP32 headers — compiles on native host for testing. Production `.cpp` files delegate to this.
+
 - **`services/` layer** — network services with namespaces:
   - `services::adsb` — fetches aircraft from `opendata.adsb.fi/api/v3/`; stores up to 64 `Aircraft` structs in a static buffer
-  - `services::location` — reads/writes radar center lat/lon from NVS (`planeradar` namespace)
+  - `services::usgs` — fetches CFS, stage (ft), water temp from USGS NWIS IV API; streams JSON through an ArduinoJson filter to keep RAM use low despite ~79 KB responses; stores up to `kGaugeHistoryCount` readings for the sparkline
+  - `services::location` — reads/writes radar center lat/lon from NVS (`radar` namespace)
   - `wifi_setup` — wraps WiFiManager for captive portal setup
 
 - **`ui/` layer** — display rendering:
   - `ui::radar` — range preset management; persists to NVS; `fetchRadiusKm()` scales fetch area to the screen edge
   - `ui::radarDisplayDraw()` — draws the full sonar grid; caches it to a sprite for fast refresh
   - `ui::radarDisplayRefreshAircraft()` — blits cached grid then redraws only aircraft (avoids full clear)
+  - `ui::gaugeDisplayDraw()` — full redraw: navy background, 270° CFS sparkline arc around the bezel, large CFS center, stage + temp below
+  - `ui::gaugeDisplayRefresh()` — clears center circle, redraws arc and values (no full-screen clear)
   - `status_screens` — yellow/black status overlays (portal, connecting, etc.)
 
-- **`main.cpp`** — Arduino `setup()`/`loop()` wiring only; no logic beyond the state machine for WiFi recovery and ADS-B poll timing.
+- **`main.cpp`** — Arduino `setup()`/`loop()` with a `DisplayMode` enum (`kRadar` / `kGauge`). Double-tap BOOT enters gauge mode; single tap in gauge mode returns to radar. Single tap in radar mode cycles range as before.
+
+- **`test/test_radar_math/`** — 27 Unity tests for all pure-logic functions; run on the native host with `pio test -e native`.
 
 ### Key design points
 
 - The radar grid is rendered once into a sprite; aircraft refreshes blit the sprite then draw on top — this is why `radarDisplayRefreshAircraft()` is separate from `radarDisplayDraw()`.
+- `gaugeDisplayRefresh()` clears only the center circle (not the full screen) before redrawing values and the sparkline arc, for the same reason.
 - Three NVS namespaces are used deliberately to avoid handle conflicts: `planeradar` (range preset index, miles/km preference), `radar` (lat/lon), and `wifi` (force-portal flag set before reboot on credential reset).
 - `ui::radar::fetchRadiusKm()` intentionally fetches beyond the visible outer ring so that aircraft just outside the ring still appear as rim dots.
 - WiFiManager custom parameters (lat, lon, units) are read back in `services::location::init()` and `ui::radar::rangeInit()` after the portal saves them.

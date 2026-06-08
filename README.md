@@ -10,14 +10,17 @@ Firmware for an **ESP32-C3 Super Mini** and a **1.28″ round GC9A01** display (
 
 1. **Wi‑Fi setup** (if needed) — captive portal on AP **`PlaneRadar-Setup`**
 2. **Radar** — live aircraft from [adsb.fi](https://opendata.adsb.fi/) on a sonar-style grid
+3. **Stream gauge** — real-time CFS, stage height, and water temp from [USGS NWIS](https://waterservices.usgs.gov/) with a 24 h sparkline arc
 
-After Wi‑Fi is saved, the device reconnects automatically; the radar runs in the main loop with periodic ADS-B updates (~5 s).
+After Wi‑Fi is saved, the device reconnects automatically; both screens update on their own timers.
 
 ## Controls (BOOT, GPIO 9, active LOW)
 
 | Action | Effect |
 |--------|--------|
-| **Short tap** | Cycle range preset (5 → 10 → 15 → 25 km); saved to flash |
+| **Single tap** (radar mode) | Cycle range preset (5 → 10 → 15 → 25 km); saved to flash |
+| **Double-tap** (radar mode) | Switch to stream gauge screen |
+| **Single tap** (gauge mode) | Return to radar |
 | **Hold 3 s** | Clear Wi‑Fi, location, and units; reboot into setup portal |
 
 During setup you can also hold BOOT at power-on to force a credential reset (same as the long press).
@@ -75,6 +78,14 @@ As range decreases (or aircraft approach), targets move inward; beyond-ring dots
 - Poll interval: `kAdsbFetchIntervalMs` (5 s) in `config.h`
 - Ground aircraft hidden by default (`kAdsbShowGroundAircraft`)
 
+## Stream gauge screen
+
+- **Display**: large CFS in the center, stage height (ft) and water temperature (°F) below, a 270° sparkline arc around the bezel showing the last 24 h of flow (colored dim-blue → bright-cyan by relative level)
+- **Source**: [USGS NWIS Instantaneous Values](https://waterservices.usgs.gov/) — free, no API key
+- **Poll interval**: every 2 minutes (`kGaugeFetchIntervalMs`); USGS updates every 15 minutes
+- **Find your gauge ID**: visit [waterdata.usgs.gov/nwis/rt](https://waterdata.usgs.gov/nwis/rt), locate your nearest stream gauge on the map, and copy the site number (e.g. `01646500`)
+- **Set it**: change `kUsgsGaugeId` in `include/config.h`
+
 ## Configuration
 
 Edit **`include/config.h`** for hardware and behavior:
@@ -87,6 +98,7 @@ Edit **`include/config.h`** for hardware and behavior:
 | Display SPI | pins, `kDisplayInvert`, `kDisplayRgbOrder`, `kDisplaySpiWriteHz` |
 | Default location | `kDefaultRadarLat`, `kDefaultRadarLon` (until portal overrides) |
 | ADS-B | `kAdsbFetchIntervalMs`, `kAdsbShowGroundAircraft` |
+| Stream gauge | `kUsgsGaugeId`, `kGaugeFetchIntervalMs`, `kGaugeHistoryCount` |
 
 Range presets: `include/ui/radar_range.h` (`kRangePresets`).
 
@@ -103,18 +115,24 @@ include/
     radar_theme.h
     radar_range.h
     radar_display.h
+    gauge_display.h
     status_screens.h
   services/
     wifi_setup.h
     radar_location.h
     adsb_client.h
+    usgs_client.h
 data/
   ui_font.vlw              — embedded smooth UI font (Noto Sans Bold)
+lib/
+  radar_math/              — header-only pure math/parsing (host-testable)
 src/
   main.cpp
   hardware/
   ui/
   services/
+test/
+  test_radar_math/         — Unity native tests (pio test -e native)
 ```
 
 ## Wiring (GC9A01 ↔ ESP32-C3 Super Mini)
