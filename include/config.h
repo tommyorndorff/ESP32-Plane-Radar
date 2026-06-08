@@ -55,6 +55,14 @@ constexpr float kAdsbFetchRadiusScale = 1.0f;
 /** false = hide aircraft with alt_baro "ground"; true = show them too. */
 constexpr bool kAdsbShowGroundAircraft = false;
 
+// --- Stream gauge (USGS NWIS) ---
+/** USGS gauge site ID — find yours at https://waterdata.usgs.gov/nwis/rt */
+constexpr char kUsgsGaugeId[] = "01646500";  // Potomac River at Little Falls, MD
+/** How often to poll USGS (ms). USGS updates every 15 min; no need to poll faster. */
+constexpr unsigned long kGaugeFetchIntervalMs = 120000UL;  // 2 min
+/** Number of historical readings kept for the sparkline (each ~15 min apart from USGS). */
+constexpr size_t kGaugeHistoryCount = 96;  // ~24 hours
+
 // --- UI colors (RGB565) — status screens ---
 constexpr uint16_t kColorBlack = 0x0000;
 constexpr uint16_t kColorYellow = 0xFFE0;
