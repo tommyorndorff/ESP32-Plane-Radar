@@ -1,5 +1,6 @@
 #include "ui/radar_range.h"
 
+#include "radar_math.h"
 #include "ui/radar_theme.h"
 
 #include <Preferences.h>
@@ -15,7 +16,6 @@ constexpr char kPrefsNamespace[] = "planeradar";
 constexpr char kPrefsRangeKey[] = "rangeIdx";
 constexpr char kPrefsMilesKey[] = "useMiles";
 constexpr uint8_t kDefaultRangeIndex = 1;  // 10 km ring
-constexpr float kKmPerMile = 1.609344f;
 
 Preferences s_prefs;
 uint8_t s_range_index = kDefaultRangeIndex;
@@ -38,15 +38,7 @@ void saveUseMiles() {
 }
 
 bool portalCheckboxChecked(const char* value) {
-  if (value == nullptr || value[0] == '\0') {
-    return false;
-  }
-  // WiFiManager checkbox submits its value= attribute ("T", or "F" if we prefilled F).
-  if ((value[0] == 'T' || value[0] == 't' || value[0] == 'F' || value[0] == 'f') &&
-      value[1] == '\0') {
-    return true;
-  }
-  return strcmp(value, "on") == 0;
+  return radar_math::portalCheckboxChecked(value);
 }
 
 }  // namespace
@@ -87,13 +79,7 @@ void saveMilesFromPortal(const char* checkbox_value) {
 }
 
 void formatRing3Label(char* buf, size_t len, float ring3_km, bool use_miles) {
-  if (use_miles) {
-    const int mi = static_cast<int>(lroundf(ring3_km / kKmPerMile));
-    snprintf(buf, len, "%dmi", mi);
-  } else {
-    const int km = static_cast<int>(lroundf(ring3_km));
-    snprintf(buf, len, "%dkm", km);
-  }
+  radar_math::formatRing3Label(buf, len, ring3_km, use_miles);
 }
 
 void formatCurrentRing3Label(char* buf, size_t len) {
