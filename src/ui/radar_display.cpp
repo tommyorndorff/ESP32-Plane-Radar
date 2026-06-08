@@ -9,6 +9,7 @@
 #include "config.h"
 #include "hardware/display.h"
 #include "hardware/display_font.h"
+#include "radar_math.h"
 #include "services/adsb_client.h"
 #include "services/radar_location.h"
 #include "ui/radar_range.h"
@@ -192,15 +193,10 @@ void initPalette() {
       tft.color565(radar::kTagAltR, radar::kTagAltG, radar::kTagAltB);
 }
 
-constexpr float kKmPerDeg = 111.0f;
-
 void offsetKmFromCenter(float lat, float lon, float* dx_km, float* dy_km,
                         float* dist_km) {
-  *dx_km =
-      static_cast<float>(lon - services::location::lon()) * kKmPerDeg;
-  *dy_km =
-      static_cast<float>(lat - services::location::lat()) * kKmPerDeg;
-  *dist_km = sqrtf((*dx_km) * (*dx_km) + (*dy_km) * (*dy_km));
+  radar_math::offsetKm(services::location::lat(), services::location::lon(),
+                       lat, lon, dx_km, dy_km, dist_km);
 }
 
 float innerRingMaxKm() {
@@ -450,21 +446,10 @@ struct BeyondDotDrawItem {
   int dist_sq = 0;
 };
 
-void sortDrawItemsFarFirst(AircraftDrawItem* items, size_t count) {
+template <typename T>
+void sortFarFirst(T* items, size_t count) {
   for (size_t i = 1; i < count; ++i) {
-    const AircraftDrawItem key = items[i];
-    size_t j = i;
-    while (j > 0 && items[j - 1].dist_sq < key.dist_sq) {
-      items[j] = items[j - 1];
-      --j;
-    }
-    items[j] = key;
-  }
-}
-
-void sortBeyondDotsFarFirst(BeyondDotDrawItem* items, size_t count) {
-  for (size_t i = 1; i < count; ++i) {
-    const BeyondDotDrawItem key = items[i];
+    const T key = items[i];
     size_t j = i;
     while (j > 0 && items[j - 1].dist_sq < key.dist_sq) {
       items[j] = items[j - 1];
@@ -515,12 +500,12 @@ void drawAircraft() {
     ++dot_count;
   }
 
-  sortBeyondDotsFarFirst(dots, dot_count);
+  sortFarFirst(dots, dot_count);
   for (size_t d = 0; d < dot_count; ++d) {
     drawBeyondRingDot(dots[d].x, dots[d].y);
   }
 
-  sortDrawItemsFarFirst(items, draw_count);
+  sortFarFirst(items, draw_count);
   for (size_t d = 0; d < draw_count; ++d) {
     const size_t i = items[d].index;
     const int x = items[d].x;

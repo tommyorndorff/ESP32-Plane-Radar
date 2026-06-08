@@ -5,6 +5,7 @@
 #include <cstring>
 
 #include "config.h"
+#include "radar_math.h"
 
 namespace services::location {
 
@@ -18,20 +19,11 @@ double s_lat = config::kDefaultRadarLat;
 double s_lon = config::kDefaultRadarLon;
 
 bool parseCoord(const char* text, double* out) {
-  if (text == nullptr || text[0] == '\0') {
-    return false;
-  }
-  char* end = nullptr;
-  const double v = strtod(text, &end);
-  if (end == text || (end != nullptr && *end != '\0')) {
-    return false;
-  }
-  *out = v;
-  return true;
+  return radar_math::parseCoord(text, out);
 }
 
 bool validLatLon(double lat, double lon) {
-  return lat >= -90.0 && lat <= 90.0 && lon >= -180.0 && lon <= 180.0;
+  return radar_math::validLatLon(lat, lon);
 }
 
 void persist(double lat, double lon) {
