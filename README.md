@@ -14,6 +14,52 @@ Firmware for an **ESP32-C3 Super Mini** and a **1.28″ round GC9A01** display (
 
 After Wi‑Fi is saved, the device reconnects automatically; both screens update on their own timers.
 
+## Getting started (beginners)
+
+This is the fastest way to get the device working — no coding or software installation required.
+
+### What you need
+
+- **ESP32-C3 Super Mini** board
+- **1.28″ round GC9A01 display** (240×240)
+- USB-C cable that supports data (not charge-only)
+- A computer with **Google Chrome or Microsoft Edge**
+
+Wire the display to the ESP32 before powering it on — see the [Wiring](#wiring-gc9a01--esp32-c3-super-mini) table below.
+
+### Step 1 — Download the firmware
+
+Go to the [Releases](https://github.com/MatixYo/ESP32-Plane-Radar/releases) page and download the latest `plane-radar-vX.Y.Z.bin` file.
+
+### Step 2 — Put the board in download mode
+
+1. Plug the ESP32-C3 into your computer via USB.
+2. Hold the **BOOT** button (labeled `BOOT` on the board).
+3. While holding BOOT, press and release the **RESET** button (labeled `RST`).
+4. Release BOOT. The board is now in download mode.
+
+### Step 3 — Flash the firmware in your browser
+
+1. Open **[esptool-js](https://espressif.github.io/esptool-js/)** in Chrome or Edge.
+2. Click **Connect**, select your ESP32-C3 from the list, and click **Connect**.
+3. Set **Flash Address** to `0x0`.
+4. Click **Choose File** and select the `.bin` file you downloaded.
+5. Click **Program**. Wait for it to finish (about 30 seconds).
+6. Press the **RESET** button on the board to reboot into the new firmware.
+
+### Step 4 — First-time Wi-Fi setup
+
+On first boot the display shows a yellow setup screen.
+
+1. On your phone or laptop, connect to the Wi-Fi network **`PlaneRadar-Setup`**.
+2. A captive portal should open automatically. If not, go to **`http://192.168.4.1`** in your browser.
+3. Enter your home Wi-Fi name and password, then fill in your **latitude and longitude** (search your address on [Google Maps](https://maps.google.com/), right-click the pin, and copy the coordinates).
+4. Tap **Save**. The board reboots and starts showing aircraft on the radar.
+
+That's it. After the first setup the device connects automatically every time it powers on.
+
+---
+
 ## Controls (BOOT, GPIO 9, active LOW)
 
 | Action | Effect |
